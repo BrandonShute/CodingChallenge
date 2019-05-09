@@ -45,12 +45,11 @@ if __name__ == '__main__':
            "Expected 2 optional arguments (market data file and fee file) but " +
            str(len(sys.argv) - 1) + " were received!"
         )
-    market_data_location = sys.argv[0]
-    fee_location = sys.argv[0]
+    market_data_location = sys.argv[1]
+    fee_location = sys.argv[2]
     trading_strategy = TradingStrategy(
         INVESTMENT,
         MarketEnvironment.from_csv(market_data_location, fee_location)
     )
     trading_strategy.execute_optimal_strategy()
-    trading_strategy.get_portfolio_value()
-    # print("The optimal PnL was determined to be: " + str())
+    print("The optimal PnL was determined to be: " + str(trading_strategy.get_portfolio_value()))
