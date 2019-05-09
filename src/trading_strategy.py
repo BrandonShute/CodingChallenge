@@ -17,35 +17,33 @@ class TradingStrategy:
 
     def execute_optimal_strategy(self):
         decision_points = self.__market_env.get_trading_decision_points()
-        for i in range(len(decision_points)):
+        for i in range(len(decision_points) - 1):
             buy_index = decision_points[i]
             sell_index = decision_points[i + 1]
             self.__portfolio_value += self.__execute_trade(buy_index, sell_index)
 
     def __execute_trade(self, buy_index: int, sell_index: int) -> float:
-        profits = filter(
-            lambda x: x > 0,
-            self.__market_env.get_profit_and_loss_for_all(self.__portfolio_value, buy_index, sell_index)
-        )
-        # Sell out of position and do nothing
-        if len(profits) == 0:
-            self.__current_instrument = None
-        # Execute the best trade (could be to hold)
-        else:
-            best_instrument = max(profits.iteritems(), key=operator.itemgetter(1))[0]
-            profit = profits[best_instrument]
-            # No fees if holding the same instrument
-            if best_instrument == self.__current_instrument:
-                profit += self.__market_env.get_fee(self.__current_instrument)
-            else:
-                self.__current_instrument = best_instrument
+        profit_and_losses = self.__market_env.get_profit_and_loss_for_all(self.__portfolio_value, buy_index, sell_index)
+        # Add back the fee if holding the current instrument
+        if self.__current_instrument is not None:
+            profit_and_losses[self.__current_instrument] += self.__market_env.get_fee(self.__current_instrument)
 
+        best_instrument = max(profit_and_losses.items(), key=operator.itemgetter(1))[0]
+        max_profit = profit_and_losses[best_instrument]
+
+        # Sell out of position and do nothing
+        if max_profit <= 0:
+            self.__current_instrument = None
+            return 0.0
+
+        self.__current_instrument = best_instrument
+        return max_profit
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
+    if len(sys.argv) != 3:
         raise Exception(
-           "Expected 2 arguments (market data file and fee file) but " +
-           len(sys.argv) + " were received!"
+           "Expected 2 optional arguments (market data file and fee file) but " +
+           str(len(sys.argv) - 1) + " were received!"
         )
     market_data_location = sys.argv[0]
     fee_location = sys.argv[0]
@@ -54,4 +52,5 @@ if __name__ == '__main__':
         MarketEnvironment.from_csv(market_data_location, fee_location)
     )
     trading_strategy.execute_optimal_strategy()
-    print("The optimal PnL was determined to be: " + trading_strategy.get_portfolio_value())
+    trading_strategy.get_portfolio_value()
+    # print("The optimal PnL was determined to be: " + str())
